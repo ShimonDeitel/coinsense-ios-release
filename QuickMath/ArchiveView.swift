@@ -174,6 +174,8 @@ struct InsightsView: View {
 
     // MARK: - Library Tab
 
+    @State private var selectedLesson: DailyLesson?
+
     private var libraryTab: some View {
         Group {
             if appModel.savedLessons.isEmpty {
@@ -201,11 +203,14 @@ struct InsightsView: View {
                     }
                 }
                 .listStyle(.plain)
+                .sheet(item: $selectedLesson) { l in
+                    LessonDetailView(lesson: l)
+                        .environmentObject(appModel)
+                        .environmentObject(store)
+                }
             }
         }
     }
-
-    @State private var selectedLesson: DailyLesson?
 
     private func savedLessonRow(lesson: DailyLesson) -> some View {
         Button {
@@ -240,11 +245,6 @@ struct InsightsView: View {
             .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
-        .sheet(item: $selectedLesson) { l in
-            LessonDetailView(lesson: l)
-                .environmentObject(appModel)
-                .environmentObject(store)
-        }
     }
 
     // MARK: - Catalog Tab (bonus deep-dive lessons)
