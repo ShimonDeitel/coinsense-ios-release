@@ -18,9 +18,9 @@
   },
   "subscriptionGroups": [
     {
-      "id": "tideline_pro_group",
+      "id": "coinsense_pro_group",
       "localizations": [],
-      "name": "Tideline Pro",
+      "name": "Coinsense Pro",
       "subscriptions": [
         {
           "adHocOffers": [],
@@ -28,19 +28,19 @@
           "displayPrice": "0.99",
           "familyShareable": false,
           "groupNumber": 1,
-          "internalID": "tideline_pro_monthly_id",
+          "internalID": "coinsense_pro_monthly_id",
           "introductoryOffer": null,
           "localizations": [
             {
-              "description": "Unlimited history, dual-wave comparison & daily insights.",
-              "displayName": "Tideline Pro",
+              "description": "Full catalog, deep-dives & daily reminders",
+              "displayName": "Coinsense Pro",
               "locale": "en_US"
             }
           ],
-          "productID": "tideline_pro_monthly",
+          "productID": "coinsense_pro_monthly",
           "recurringSubscriptionPeriod": "P1M",
-          "referenceName": "Tideline Pro Monthly",
-          "subscriptionGroupID": "tideline_pro_group",
+          "referenceName": "Coinsense Pro Monthly",
+          "subscriptionGroupID": "coinsense_pro_group",
           "type": "RecurringSubscription"
         }
       ]

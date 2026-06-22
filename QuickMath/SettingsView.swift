@@ -4,104 +4,113 @@ struct SettingsView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var appModel: AppModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     @AppStorage("quickmath.theme") private var themeRaw = AppTheme.system.rawValue
-
     @State private var showPaywall = false
-    @State private var showDeleteConfirm = false
-
-    private var theme: Binding<AppTheme> {
-        Binding(
-            get: { AppTheme(rawValue: themeRaw) ?? .system },
-            set: { themeRaw = $0.rawValue }
-        )
-    }
+    @State private var showDeleteAlert = false
 
     var body: some View {
         NavigationStack {
             ZStack {
                 QMBackground()
-
-                List {
+                Form {
                     // Pro section
-                    Section("Subscription") {
+                    Section {
                         if store.isPro {
                             HStack {
-                                Text("Tideline Pro")
-                                Spacer()
-                                Text("Active")
-                                    .foregroundStyle(Color.qmCorrect)
-                                    .font(.subheadline.weight(.medium))
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundStyle(Color.qmAccent)
+                                Text("Coinsense Pro — Active")
+                                    .font(.headline)
                             }
-                            Link("Manage Subscription",
-                                 destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
-                                .foregroundStyle(Color.qmAccent)
-                        } else {
-                            Button("Unlock Tideline Pro") {
-                                showPaywall = true
+                            Button("Manage Subscription") {
+                                openURL(URL(string: "https://apps.apple.com/account/subscriptions")!)
                             }
                             .foregroundStyle(Color.qmAccent)
+                        } else {
+                            Button {
+                                showPaywall = true
+                                Haptics.tap()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "lock.open.fill")
+                                        .foregroundStyle(Color.qmAccent)
+                                    Text("Unlock Coinsense Pro")
+                                        .font(.headline)
+                                        .foregroundStyle(Color.qmAccent)
+                                }
+                            }
+                            Button("Restore Purchases") {
+                                Haptics.tap()
+                                Task { await store.restore() }
+                            }
+                            .foregroundStyle(.secondary)
                         }
-
-                        Button("Restore Purchase") {
-                            Task { await store.restore() }
-                        }
-                        .foregroundStyle(Color.qmAccent)
+                    } header: {
+                        Text("Pro")
                     }
 
-                    // Appearance
-                    Section("Appearance") {
-                        Picker("Theme", selection: theme) {
-                            ForEach(AppTheme.allCases) { t in
-                                Text(t.label).tag(t)
+                    // Appearance section
+                    Section {
+                        Picker("Appearance", selection: $themeRaw) {
+                            ForEach(AppTheme.allCases) { theme in
+                                Text(theme.label).tag(theme.rawValue)
                             }
                         }
                         .pickerStyle(.segmented)
+                    } header: {
+                        Text("Appearance")
                     }
 
-                    // Legal
-                    Section("Legal") {
-                        Link("Privacy Policy",
-                             destination: URL(string: "https://shimondeitel.github.io/tideline-site/privacy.html")!)
-                            .foregroundStyle(Color.qmAccent)
-                        Link("Terms of Use",
-                             destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-                            .foregroundStyle(Color.qmAccent)
-                    }
-
-                    // Data
-                    Section("Data") {
-                        Button("Delete All Data") {
-                            showDeleteConfirm = true
+                    // Links section
+                    Section {
+                        Button("Privacy Policy") {
+                            openURL(URL(string: "https://shimondeitel.github.io/coinsense-site/privacy.html")!)
                         }
-                        .foregroundStyle(Color.qmWrong)
+                        .foregroundStyle(Color.qmAccent)
+                        Button("Terms of Use") {
+                            openURL(URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                        }
+                        .foregroundStyle(Color.qmAccent)
+                    } header: {
+                        Text("Legal")
+                    }
+
+                    // Data section
+                    Section {
+                        Button(role: .destructive) {
+                            showDeleteAlert = true
+                        } label: {
+                            Text("Delete All Data")
+                        }
+                    } header: {
+                        Text("Data")
+                    } footer: {
+                        Text("This removes all lesson history and streaks. This action cannot be undone.")
                     }
                 }
-                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
+                        .foregroundStyle(Color.qmAccent)
                 }
             }
-            .sheet(isPresented: $showPaywall) {
-                PaywallView()
-                    .environmentObject(store)
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView().environmentObject(store)
+        }
+        .alert("Delete All Data", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                appModel.deleteAllData()
+                Haptics.warning()
             }
-            .confirmationDialog(
-                "Delete all Tideline data?",
-                isPresented: $showDeleteConfirm,
-                titleVisibility: .visible
-            ) {
-                Button("Delete All", role: .destructive) {
-                    appModel.deleteAllData()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This removes all your logged energy entries and cannot be undone.")
-            }
+        } message: {
+            Text("All lesson history, streaks, and saved lessons will be permanently deleted.")
         }
     }
 }

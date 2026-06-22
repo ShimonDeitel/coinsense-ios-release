@@ -3,11 +3,12 @@ import SwiftUI
 struct PaywallView: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     private let benefits = [
-        ("clock.arrow.circlepath", "Unlimited multi-month wave history and zoom"),
-        ("waveform.path.ecg", "Morning vs evening dual-wave comparison"),
-        ("lightbulb", "Best-time-of-day insights and gentle daily nudge")
+        ("books.vertical.fill", "Full back-catalog of past lessons and a saved-favorites library"),
+        ("bolt.fill", "Two bonus deep-dive lessons each day and topic playlists"),
+        ("bell.badge.fill", "Daily learning reminder and progress insights"),
     ]
 
     var body: some View {
@@ -17,101 +18,114 @@ struct PaywallView: View {
 
                 ScrollView {
                     VStack(spacing: 28) {
-                        // Icon + title
-                        VStack(spacing: 12) {
-                            Image(systemName: "waveform.path.ecg")
-                                .font(.system(size: 56, weight: .thin))
+                        // Icon
+                        ZStack {
+                            Circle()
+                                .fill(Color.qmCard)
+                                .frame(width: 80, height: 80)
+                            Image(systemName: "lightbulb.fill")
+                                .font(.system(size: 36))
                                 .foregroundStyle(Color.qmAccent)
+                        }
+                        .padding(.top, 32)
 
-                            Text("Tideline Pro")
-                                .font(.largeTitle.weight(.bold))
-
+                        // Heading
+                        VStack(spacing: 8) {
+                            Text("Coinsense Pro")
+                                .font(.title.weight(.bold))
                             Text("$0.99 / month. Auto-renews until you cancel.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
                         }
-                        .padding(.top, 16)
 
                         // Benefits
                         VStack(spacing: 0) {
-                            ForEach(Array(benefits.enumerated()), id: \.offset) { idx, benefit in
-                                HStack(spacing: 14) {
+                            ForEach(Array(benefits.enumerated()), id: \.offset) { _, benefit in
+                                HStack(alignment: .top, spacing: 14) {
                                     Image(systemName: benefit.0)
+                                        .font(.body)
                                         .foregroundStyle(Color.qmAccent)
-                                        .frame(width: 28)
+                                        .frame(width: 24)
+                                        .padding(.top, 2)
                                     Text(benefit.1)
-                                        .font(.subheadline)
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                        .multilineTextAlignment(.leading)
                                     Spacer()
                                 }
                                 .padding(.vertical, 14)
-                                .padding(.horizontal, 16)
 
-                                if idx < benefits.count - 1 {
-                                    Divider().padding(.leading, 58)
+                                if benefit.1 != benefits.last?.1 {
+                                    Divider()
                                 }
                             }
                         }
-                        .background(Color.qmCard, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .padding(.horizontal, 16)
+                        .qmCard()
+                        .padding(.horizontal, 4)
 
                         // Unlock button
                         Button {
-                            Task {
-                                await store.purchase()
-                            }
+                            Haptics.tap()
+                            Task { await store.purchase() }
                         } label: {
-                            HStack(spacing: 8) {
+                            Group {
                                 if store.purchaseInFlight {
                                     ProgressView()
                                         .tint(.white)
+                                } else {
+                                    Text("Unlock for \(store.displayPrice)/mo")
+                                        .frame(maxWidth: .infinity)
                                 }
-                                Text("Unlock for \(store.displayPrice)/month")
-                                    .frame(maxWidth: .infinity)
                             }
                         }
-                        .prominentButton()
                         .disabled(store.purchaseInFlight)
-                        .padding(.horizontal, 16)
+                        .prominentButton()
+                        .padding(.horizontal, 4)
 
                         // Restore
-                        Button("Restore Purchase") {
+                        Button("Restore Purchases") {
+                            Haptics.tap()
                             Task { await store.restore() }
                         }
                         .font(.subheadline)
-                        .foregroundStyle(Color.qmAccent)
+                        .foregroundStyle(.secondary)
 
-                        // Legal
-                        VStack(spacing: 8) {
-                            Text("Subscription automatically renews each month at \(store.displayPrice) unless cancelled at least 24 hours before the renewal date. Manage or cancel anytime in your Apple Account subscriptions.")
-                                .font(.caption)
+                        // Auto-renew disclosure
+                        Text("Subscription automatically renews for \(store.displayPrice) per month unless cancelled at least 24 hours before the end of the current period. Cancel anytime in your Apple ID subscription settings.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 8)
+
+                        // Terms & Privacy links
+                        HStack(spacing: 20) {
+                            Button("Terms of Use") {
+                                openURL(URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                            }
+                            Text("·")
                                 .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-
-                            HStack(spacing: 16) {
-                                Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-                                    .font(.caption)
-                                    .foregroundStyle(Color.qmAccent)
-                                Link("Privacy Policy", destination: URL(string: "https://shimondeitel.github.io/tideline-site/privacy.html")!)
-                                    .font(.caption)
-                                    .foregroundStyle(Color.qmAccent)
+                            Button("Privacy Policy") {
+                                openURL(URL(string: "https://shimondeitel.github.io/coinsense-site/privacy.html")!)
                             }
                         }
-                        .padding(.horizontal, 24)
+                        .font(.caption)
+                        .foregroundStyle(Color.qmAccent)
 
-                        Spacer(minLength: 16)
+                        Spacer(minLength: 32)
                     }
+                    .padding(.horizontal, 24)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Close") { dismiss() }
+                        .foregroundStyle(Color.qmAccent)
                 }
             }
-            .onChange(of: store.isPro) { _, newValue in
-                if newValue { dismiss() }
-            }
+        }
+        .onChange(of: store.isPro) { _, newValue in
+            if newValue { dismiss() }
         }
     }
 }
